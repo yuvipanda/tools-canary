@@ -8,16 +8,23 @@ from flask import Flask
 app = Flask(__name__)
 app.debug = True
 
+
 def check(endpoint):
-    def actual_check(function):
-        start_time = time.time()
-        ret = function()
-        total_time = time.time() - start_time
-        return json.dumps({
-            'status': ret,
-            'time': total_time
-        })
-    return app.route(endpoint)(actual_check)
+    def actual_decorator(func):
+        def actual_check():
+            start_time = time.time()
+            try:
+                ret = func()
+            except:
+                # FIXME: log this error somewhere
+                ret = False
+            total_time = time.time() - start_time
+            return json.dumps({
+                'status': ret,
+                'time': total_time
+            })
+        return app.route(endpoint)(actual_check)
+    return actual_decorator
 
 
 @check('/nfs/home')
