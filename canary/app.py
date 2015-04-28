@@ -2,6 +2,7 @@ import os
 import uuid
 import time
 import json
+import redis
 
 from flask import Flask
 
@@ -23,6 +24,8 @@ def check(endpoint):
                 'status': ret,
                 'time': total_time
             })
+        # Fix for https://github.com/mitsuhiko/flask/issues/796
+        actual_check.__name__ = func.__name__
         return app.route(endpoint)(actual_check)
     return actual_decorator
 
@@ -43,3 +46,15 @@ def nfs_home_check():
         return False
     finally:
         os.remove(path)
+
+
+@check('/redis')
+def redis_check():
+    red = redis.StrictRedis(host='tools-redis')
+    content = str(uuid.uuid4())
+    try:
+        red.set(content, content)
+        return red.get(content) == content
+    finally:
+        red.delete(content)
+        red.close()
